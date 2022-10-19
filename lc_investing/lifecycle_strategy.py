@@ -177,7 +177,7 @@ class Simulation:
     return
 
 
-  def calc_real_returns(self, 
+  def calc_real_return(self, 
                         period,
                         requirement):
     """

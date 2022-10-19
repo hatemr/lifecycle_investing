@@ -16,7 +16,7 @@ def create_income_contributions(data_folder: str,
 
     return df
 
-def create_contributions(df_income_contrib: pd.DataFrame,
+def create_contributions(income_contrib: pd.DataFrame,
                          ssreplace: float,
                          rmm: float,
                          rfm: float):
@@ -27,7 +27,7 @@ def create_contributions(df_income_contrib: pd.DataFrame,
     df.loc[:, 'Age'] = np.array([i // 12 for i in range(0,528)]) + 23
 
     df1 = pd.merge(df, 
-                   df_income_contrib.loc[:, ['Age', 'Yearly_income_contribution']].copy(), 
+                   income_contrib.loc[:, ['Age', 'Yearly_income_contribution']].copy(), 
                    on='Age', 
                    how='left')
 

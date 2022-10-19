@@ -106,21 +106,22 @@ class Simulation:
 
     self.data_month = create_data_month(self.cohorts)
 
-    # self.real_return = self.calc_real_return(monthly_data=self.monthly_data,
-    #                                          percentage_target=self.percentage_target,
-    #                                          data_month=self.data_month)
+    self.real_return = self.calc_real_return(monthly_data=self.monthly_data,
+                                             percentage_target=self.percentage_target,
+                                             data_month=self.data_month)
 
-    # sefl.income_contrib = create_income_contributions(incomemult=self.incomemult,
-    #                                                   contrate=self.contrate)
+    self.income_contrib = create_income_contributions(data_folder=self.data_folder,
+                                                      incomemult=self.incomemult,
+                                                      contrate=self.contrate)
 
-    # self.contributions = create_contributions(income_contrib=self.income_contrib,
-    #                                           ssreplace=self.ssreplace,
-    #                                           rmm=self.rmm,
-    #                                           rfm=self.rfm)
+    self.contributions = create_contributions(income_contrib=self.income_contrib,
+                                              ssreplace=self.ssreplace,
+                                              rmm=self.rmm,
+                                              rfm=self.rfm)
 
-    # self.retirement_savings_before_period = self.calc_retirement_savings_before_period(df_cohorts=self.cohorts,
-    #                                                                                       contributions=self.contributions,
-    #                                                                                       real_return=self.real_return)
+    self.retirement_savings_before_period = self.calc_retirement_savings_before_period(cohorts=self.cohorts,
+                                                                                       contributions=self.contributions,
+                                                                                       real_return=self.real_return)
 
 
   def calc_retirement_savings_before_period(self,
@@ -147,7 +148,7 @@ class Simulation:
 
     df1_wide = df1.pivot(index=['cohort_num', 'begins_work', 'retire'], 
                         columns='period_num', 
-                        values='Monthly_Contribution')
+                        values='Monthly_Contribution').reset_index()
 
     for c in range(2, 529):
       # last period, plus contributions, times returns
@@ -166,7 +167,6 @@ class Simulation:
                              lambdacons: float):
     df1 = cohorts.copy()
 
-    return df1
     perc_targ = pd.DataFrame(data=lambdacons * np.ones((df1.shape[0],528)),
                              columns=list(range(1,529)))
 
@@ -187,26 +187,22 @@ class Simulation:
 
     df3 = pd.merge(data_month_melted, 
                    monthly_data.loc[:, ['Months_beginning_Jan_1871', 
-                                        'Monthly_real_gov_bond_rate',	
-                                        'Monthly_real_margin_rate',	
-                                        'Monthly_real_stock_rate']],
+                                        'Monthly_real_gov_bond_rate',	# L
+                                        'Monthly_real_margin_rate',	  # M
+                                        'Monthly_real_stock_rate']],  # N
                    left_on='month',
                    right_on='Months_beginning_Jan_1871'). \
                    sort_values(['cohort_num', 'period_num', 'begins_work'])
-
-    return df3
 
     percentage_target_melted = pd.melt(percentage_target, 
                                        id_vars=['cohort_num', 'begins_work', 'retire'],
                                        var_name='period_num',
                                        value_name='percentage_target')
-
+    
     df4 = pd.merge(df3, 
                   percentage_target_melted.loc[:, ['cohort_num', 'period_num', 'percentage_target']],
                   left_on=['cohort_num','period_num'],
                   right_on=['cohort_num','period_num'])
-
-    return df4
 
     # if allocation is greater than 100%, use margin rate
     df4.loc[df4.percentage_target > 1, 'monthly_real_return'] = df4.loc[df4.percentage_target > 1, 'Monthly_real_margin_rate']
@@ -219,7 +215,7 @@ class Simulation:
 
     df5 = df4.pivot(index = ['cohort_num',	'begins_work',	'retire'], 
                     columns = ['period_num'], 
-                    values = 'monthly_real_return')
+                    values = 'monthly_real_return').reset_index()
 
     return df5
 
