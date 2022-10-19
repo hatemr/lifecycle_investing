@@ -1,6 +1,8 @@
 import numpy as np
-import numpy_financial as npf
 import pandas as pd
+
+from .utils import npv
+
 
 def create_income_contributions(data_folder: str,
                                 incomemult: float,
@@ -41,10 +43,10 @@ def create_contributions(income_contrib: pd.DataFrame,
     
     cashflows = df1.Monthly_Contribution.values.tolist()
 
-    NPVs = np.array([npf.npv(rmm, [0] + cashflows[i:]) for i in range(len(cashflows))]) * (1 + rmm)
+    NPVs = np.array([npv(rmm, [0] + cashflows[i:]) for i in range(len(cashflows))]) * (1 + rmm)
     df1.loc[:, 'PV_of_remaining_contributions_at_the_margin_rate'] = NPVs
     
-    NPVs_riskfree = NPVs = np.array([npf.npv(rfm, [0] + cashflows[i:]) for i in range(len(cashflows))]) * (1 + rfm)
+    NPVs_riskfree = NPVs = np.array([npv(rfm, [0] + cashflows[i:]) for i in range(len(cashflows))]) * (1 + rfm)
     df1.loc[:, 'PV_of_remaining_contributions_at_the_risk_free_rate'] = NPVs_riskfree
 
     df1.loc[:, 'Yearly_Contribution'] = df1.loc[:, 'Monthly_Contribution'] * 12

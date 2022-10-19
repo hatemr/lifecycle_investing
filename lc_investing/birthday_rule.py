@@ -13,48 +13,25 @@ class Simulation:
 
   def __init__(self,
                data_folder='/content/drive/Othercomputers/My MacBook Air/Taxes_and_other_forms/lifecycle_investing/lc_investing/data/',
-               startper=1,
-               lambda1=0.83030407,
-               lambda2=0.83030407,
                cap=2,
-               requirement=0,
                incomemult=2.35217277377134,
                contrate=0.04,
                ssreplace=0.0,
                rmm=0.00213711852838,
                rfm=0.00211039468707308,
-               PEadjust=0,
-               maxsam=2,
-               minsam=0,
-               inheritance_indicator=0,
-               inheritance_amount=5000,
-               lambdaearly=2,
-               lambdacons=0.75,
                birthint=0.9,
                birthfin=0.5):
 
     self.data_folder=data_folder
-    self.startper=startper
-    self.lambda1=lambda1
-    self.lambda2=lambda2
     self.cap=cap
-    self.requirement=requirement
     self.incomemult=incomemult
     self.contrate=contrate
     self.ssreplace=ssreplace
     self.rmm=rmm
     self.rfm=rfm
-    self.PEadjust=PEadjust
-    self.maxsam=maxsam
-    self.minsam=minsam
-    self.inheritance_indicator=inheritance_indicator
-    self.inheritance_amount=inheritance_amount
-    self.lambdaearly=lambdaearly
-    self.lambdacons=lambdacons
     self.birthint=birthint
     self.birthfin=birthfin
-                                                      
-
+    
     self.cohorts = create_cohorts()
     
     self.margin_call_info = create_margin_call_info(data_folder=self.data_folder)
@@ -99,14 +76,14 @@ class Simulation:
     """Calculate the retirement savings before the period"""
 
     cohorts_2 = pd.DataFrame(data=np.empty((cohorts.shape[0], 528)),
-                                columns=list(range(1,529)))
+                             columns=list(range(1,529)))
 
     cohorts_3 = pd.concat([cohorts, cohorts_2], axis=1)
 
     cohorts_melted = pd.melt(cohorts_3, 
-                                id_vars=['cohort_num', 'begins_work', 'retire'],
-                                var_name='period_num',
-                                value_name='placeholder')
+                             id_vars=['cohort_num', 'begins_work', 'retire'],
+                             var_name='period_num',
+                             value_name='placeholder')
 
     df1 = pd.merge(cohorts_melted,
                    contributions.loc[:, ['Months', 'Monthly_Contribution']],
@@ -205,7 +182,6 @@ class Simulation:
                     columns = ['period_num'], 
                     values = 'monthly_real_return')
 
-    # df5.columns = df5.columns.droplevel(0)
     df5.columns.name = None
 
     df5 = df5.reset_index()
@@ -216,21 +192,21 @@ class Simulation:
 
 
 def Amount_in_stock(cohort: pd.DataFrame, 
-                    df_retirement_savings_before_period: pd.DataFrame,
+                    retirement_savings_before_period: pd.DataFrame,
                     percentage_target: pd.DataFrame):
     pass
 def Present_value_of_accumulation(cohort: pd.DataFrame):
     pass
 def Present_value_of_accumulation(cohort: pd.DataFrame, 
-                                  df_retirement_savings_before_period: pd.DataFrame,
+                                  retirement_savings_before_period: pd.DataFrame,
                                   rfm: float):
     pass
 def Utility(cohort: pd.DataFrame, 
-            df_retirement_savings_before_period: pd.DataFrame,
+            retirement_savings_before_period: pd.DataFrame,
             crracons):
     pass
 def Herfindal_Hirshman_Index_Calculation(cohort: pd.DataFrame, 
-                                         df_amount_in_stock: pd.DataFrame):
+                                         amount_in_stock: pd.DataFrame):
     pass
 def Payment_Stream(cohort: pd.DataFrame, 
                    contributions: pd.DataFrame):

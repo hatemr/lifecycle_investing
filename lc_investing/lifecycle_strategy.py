@@ -6,7 +6,7 @@ from lc_investing.create_cohorts import create_cohorts
 from lc_investing.monthly_data import create_monthly_data
 from lc_investing.pe_multiplier import caclulate_pe_10, caclulate_pe_10_multiplier
 from lc_investing.margin_call_info import create_margin_call_info
-from lc_investing.utils import def initialize_cohort_table, create_data_month
+from lc_investing.utils import initialize_cohort_table, create_data_month
 
 
 class Simulation:
@@ -82,18 +82,18 @@ class Simulation:
     self.data_month = create_data_month(self.cohorts)
     
     # from 'Lifecycle strategy' sheet
-    self.df_pe_depending_on_period = PE_10_depending_on_period(self.data_month, 
+    self.pe_depending_on_period = PE_10_depending_on_period(self.data_month, 
                                                                self.pe_10)
     
     # from 'Lifecycle strategy' sheet
-    self.pe_multiplier = PE_Multiplier(df_PE_10_depending_on_period=self.df_pe_depending_on_period,
+    self.pe_multiplier = PE_Multiplier(PE_10_depending_on_period=self.pe_depending_on_period,
                                        pe_10_samuelson=self.pe_10_samuelson)
 
-    self.df_income_contrib = create_income_contributions(data_folder=self.data_folder,
+    self.income_contrib = create_income_contributions(data_folder=self.data_folder,
                                                          incomemult=self.incomemult,
                                                          contrate=self.contrate)
 
-    self.contributions = create_contributions(df_income_contrib=self.df_income_contrib,
+    self.contributions = create_contributions(income_contrib=self.income_contrib,
                                               ssreplace=self.ssreplace,
                                               rmm=self.rmm,
                                               rfm=self.rfm)
@@ -120,7 +120,7 @@ class Simulation:
       
       self.calc_percentage_target(period=per)
       
-      df=self.calc_real_returns(period=per, requirement=self.requirement)
+      self.calc_real_return(period=per, requirement=self.requirement)
 
       # right placement?
       self.calc_real_return_for_ages_0_22(period=per)
@@ -246,15 +246,15 @@ class Simulation:
     data_month_melted.loc[:, 'month'] = data_month_melted.loc[:, 'month'].shift(periods=23)
 
     df1 = pd.merge(data_month_melted, 
-                    self.monthly_data.loc[:, ['Months_beginning_Jan_1871', 
-                                              'Monthly_real_gov_bond_rate', # L	
-                                              'Monthly_real_margin_rate', # M
-                                              'Monthly_real_stock_rate', # N
-                                              'Margin_Call_Cutoff', # P
-                                              'Margin_Call_Real_Stock_Return']], # Q
-                    left_on='month',
-                    right_on='Months_beginning_Jan_1871'). \
-      sort_values(['cohort_num', 'period_num', 'begins_work'])
+                   self.monthly_data.loc[:, ['Months_beginning_Jan_1871', 
+                                             'Monthly_real_gov_bond_rate', # L	
+                                             'Monthly_real_margin_rate', # M
+                                             'Monthly_real_stock_rate', # N
+                                             'Margin_Call_Cutoff', # P
+                                             'Margin_Call_Real_Stock_Return']], # Q
+                   left_on='month',
+                   right_on='Months_beginning_Jan_1871'). \
+                   sort_values(['cohort_num', 'period_num', 'begins_work'])
 
     # df1 = df1.loc[df1.cohort_num >= 24, :]
 
@@ -318,30 +318,30 @@ def initialize_cohort_table_birth():
 
 
 
-def Amount_in_stock(df_cohort: pd.DataFrame, 
-                    df_retirement_savings_before_period: pd.DataFrame,
-                    df_percentage_target: pd.DataFrame):
+def Amount_in_stock(cohort: pd.DataFrame, 
+                    retirement_savings_before_period: pd.DataFrame,
+                    percentage_target: pd.DataFrame):
     pass
-def Present_value_of_accumulation(df_cohort: pd.DataFrame, 
+def Present_value_of_accumulation(cohort: pd.DataFrame, 
                                      ):
     pass
-def Present_value_of_accumulation(df_cohort: pd.DataFrame, 
-                                  df_retirement_savings_before_period: pd.DataFrame,
+def Present_value_of_accumulation(cohort: pd.DataFrame, 
+                                  retirement_savings_before_period: pd.DataFrame,
                                   rfm: float):
     pass
-def Utility(df_cohort: pd.DataFrame, 
-            df_retirement_savings_before_period: pd.DataFrame,
+def Utility(cohort: pd.DataFrame, 
+            retirement_savings_before_period: pd.DataFrame,
             crracons):
     pass
-def Herfindal_Hirshman_Index_Calculation(df_cohort: pd.DataFrame, 
-                                         df_amount_in_stock: pd.DataFrame):
+def Herfindal_Hirshman_Index_Calculation(cohort: pd.DataFrame, 
+                                         amount_in_stock: pd.DataFrame):
     pass
-def Payment_Stream(df_cohort: pd.DataFrame, 
-                   df_contributions: pd.DataFrame):
+def Payment_Stream(cohort: pd.DataFrame, 
+                   contributions: pd.DataFrame):
     pass
 
 
-def PE_10_depending_on_period(df_data_month: pd.DataFrame,
+def PE_10_depending_on_period(data_month: pd.DataFrame,
                               pe_10: pd.DataFrame):
 
   """
@@ -350,12 +350,12 @@ def PE_10_depending_on_period(df_data_month: pd.DataFrame,
   Static table
   """
 
-  df_data_month_melted = pd.melt(df_data_month, 
-                                 id_vars=['cohort_num', 'begins_work', 'retire'],
-                                 var_name='period_num',
-                                 value_name='month')
+  data_month_melted = pd.melt(data_month, 
+                              id_vars=['cohort_num', 'begins_work', 'retire'],
+                              var_name='period_num',
+                              value_name='month')
 
-  df1 = pd.merge(df_data_month_melted,
+  df1 = pd.merge(data_month_melted,
                  pe_10.loc[:, ['period_num', 'PE_10']],
                  left_on='month',
                  right_on='period_num',
@@ -371,7 +371,7 @@ def PE_10_depending_on_period(df_data_month: pd.DataFrame,
   return df2
 
 
-def PE_Multiplier(df_PE_10_depending_on_period: pd.DataFrame,
+def PE_Multiplier(PE_10_depending_on_period: pd.DataFrame,
                   pe_10_samuelson: pd.DataFrame):
 
   """
@@ -394,17 +394,17 @@ def PE_Multiplier(df_PE_10_depending_on_period: pd.DataFrame,
     return mult[-1,1]
   
   # find the Samuelson multiplier for each PE_10 value
-  pe_mult = [[lookup(val, pe_array) for val in df_PE_10_depending_on_period.loc[:, c]] for c in range(1, 529)]
+  pe_mult = [[lookup(val, pe_array) for val in PE_10_depending_on_period.loc[:, c]] for c in range(1, 529)]
 
   # turn this PE multiplier value into a dataframe
-  df_pe_multiplier = pd.DataFrame(data=np.array(pe_mult).T,
+  pe_multiplier = pd.DataFrame(data=np.array(pe_mult).T,
                                   columns=list(range(1,529)))
 
   # tack on the three ID columns on the left
-  df_pe_multiplier = pd.concat([df_PE_10_depending_on_period.loc[:, ['cohort_num', 'begins_work', 'retire']], 
-                                df_pe_multiplier], axis=1)
+  pe_multiplier = pd.concat([PE_10_depending_on_period.loc[:, ['cohort_num', 'begins_work', 'retire']], 
+                             pe_multiplier], axis=1)
     
-  return df_pe_multiplier
+  return pe_multiplier
 
 
 def Samuelson_Share_for_ages_0_22(lambdaearly: float):

@@ -4,50 +4,29 @@ import pandas as pd
 from lc_investing.contributions import create_contributions, create_income_contributions
 from lc_investing.create_cohorts import create_cohorts
 from lc_investing.monthly_data import create_monthly_data
-from lc_investing.pe_multiplier import caclulate_pe_10, caclulate_pe_10_multiplier
 from lc_investing.margin_call_info import create_margin_call_info
-from lc_investing.utils import initialize_cohort_table, create_data_month
+from lc_investing.utils import create_data_month
 
 
 class Simulation:
 
   def __init__(self,
                data_folder='/content/drive/Othercomputers/My MacBook Air/Taxes_and_other_forms/lifecycle_investing/lc_investing/data/',
-               startper=1,
-               lambda1=0.83030407,
-               lambda2=0.83030407,
                cap=2,
-               requirement=0,
                incomemult=2.35217277377134,
                contrate=0.04,
                ssreplace=0.0,
                rmm=0.00213711852838,
                rfm=0.00211039468707308,
-               PEadjust=0,
-               maxsam=2,
-               minsam=0,
-               inheritance_indicator=0,
-               inheritance_amount=5000,
-               lambdaearly=2,
                lambdacons=0.75):
 
     self.data_folder=data_folder
-    self.startper=startper
-    self.lambda1=lambda1
-    self.lambda2=lambda2
     self.cap=cap
-    self.requirement=requirement
     self.incomemult=incomemult
     self.contrate=contrate
     self.ssreplace=ssreplace
     self.rmm=rmm
     self.rfm=rfm
-    self.PEadjust=PEadjust
-    self.maxsam=maxsam
-    self.minsam=minsam
-    self.inheritance_indicator=inheritance_indicator
-    self.inheritance_amount=inheritance_amount
-    self.lambdaearly=lambdaearly
     self.lambdacons=lambdacons
                                                       
 
@@ -95,24 +74,24 @@ class Simulation:
     """"Calculates the retirement savings before the period"""
 
     cohorts_2 = pd.DataFrame(data=np.empty((cohorts.shape[0], 528)),
-                                columns=list(range(1,529)))
+                             columns=list(range(1,529)))
 
     cohorts_3 = pd.concat([cohorts, cohorts_2], axis=1)
 
     cohorts_melted = pd.melt(cohorts_3, 
-                                id_vars=['cohort_num', 'begins_work', 'retire'],
-                                var_name='period_num',
-                                value_name='placeholder')
+                             id_vars=['cohort_num', 'begins_work', 'retire'],
+                             var_name='period_num',
+                             value_name='placeholder')
 
     df1 = pd.merge(cohorts_melted,
-                  contributions.loc[:, ['Months', 'Monthly_Contribution']],
-                  left_on='period_num',
-                  right_on='Months'). \
+                   contributions.loc[:, ['Months', 'Monthly_Contribution']],
+                   left_on='period_num',
+                   right_on='Months'). \
       drop(columns=['placeholder','Months'])
 
     df1_wide = df1.pivot(index=['cohort_num', 'begins_work', 'retire'], 
-                        columns='period_num', 
-                        values='Monthly_Contribution').reset_index()
+                         columns='period_num', 
+                         values='Monthly_Contribution').reset_index()
 
     for c in range(2, 529):
       # last period, plus contributions, times returns
@@ -145,9 +124,9 @@ class Simulation:
                        data_month: pd.DataFrame):
 
     data_month_melted = pd.melt(data_month, 
-                                  id_vars=['cohort_num', 'begins_work', 'retire'],
-                                  var_name='period_num',
-                                  value_name='month')
+                                id_vars=['cohort_num', 'begins_work', 'retire'],
+                                var_name='period_num',
+                                value_name='month')
 
     df3 = pd.merge(data_month_melted, 
                    monthly_data.loc[:, ['Months_beginning_Jan_1871', 
@@ -164,9 +143,9 @@ class Simulation:
                                        value_name='percentage_target')
     
     df4 = pd.merge(df3, 
-                  percentage_target_melted.loc[:, ['cohort_num', 'period_num', 'percentage_target']],
-                  left_on=['cohort_num','period_num'],
-                  right_on=['cohort_num','period_num'])
+                   percentage_target_melted.loc[:, ['cohort_num', 'period_num', 'percentage_target']],
+                   left_on=['cohort_num','period_num'],
+                   right_on=['cohort_num','period_num'])
 
     # if allocation is greater than 100%, use margin rate
     df4.loc[df4.percentage_target > 1, 'monthly_real_return'] = df4.loc[df4.percentage_target > 1, 'Monthly_real_margin_rate']
@@ -187,24 +166,23 @@ class Simulation:
 
 
 
-def Amount_in_stock(df_cohort: pd.DataFrame, 
-                    df_retirement_savings_before_period: pd.DataFrame,
+def Amount_in_stock(cohorts: pd.DataFrame, 
+                    retirement_savings_before_period: pd.DataFrame,
                     percentage_target: pd.DataFrame):
     pass
-def Present_value_of_accumulation(df_cohort: pd.DataFrame, 
-                                     ):
+def Present_value_of_accumulation(cohorts: pd.DataFrame):
     pass
-def Present_value_of_accumulation(df_cohort: pd.DataFrame, 
-                                  df_retirement_savings_before_period: pd.DataFrame,
+def Present_value_of_accumulation(cohorts: pd.DataFrame, 
+                                  retirement_savings_before_period: pd.DataFrame,
                                   rfm: float):
     pass
-def Utility(df_cohort: pd.DataFrame, 
-            df_retirement_savings_before_period: pd.DataFrame,
+def Utility(cohorts: pd.DataFrame, 
+            retirement_savings_before_period: pd.DataFrame,
             crracons):
     pass
-def Herfindal_Hirshman_Index_Calculation(df_cohort: pd.DataFrame, 
-                                         df_amount_in_stock: pd.DataFrame):
+def Herfindal_Hirshman_Index_Calculation(cohort: pd.DataFrame, 
+                                         amount_in_stock: pd.DataFrame):
     pass
-def Payment_Stream(df_cohort: pd.DataFrame, 
+def Payment_Stream(cohort: pd.DataFrame, 
                    contributions: pd.DataFrame):
     pass
