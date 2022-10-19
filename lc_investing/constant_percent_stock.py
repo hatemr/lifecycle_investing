@@ -53,13 +53,6 @@ class Simulation:
 
     self.cohorts = create_cohorts()
     
-    # self.retirement_savings_before_period = initialize_cohort_table(self.cohorts)
-    # self.percentage_target = initialize_cohort_table(self.cohorts)
-    # self.real_returns = initialize_cohort_table(self.cohorts)
-    # self.real_return_for_ages_0_22 = initialize_cohort_table_birth()
-    # self.inheritance_from_ages_0_22 = initialize_cohort_table_birth()
-    # self.inheritance_from_ages_0_22.loc[self.inheritance_from_ages_0_22.cohort_num >= 24, 0] = self.inheritance_amount if self.inheritance_indicator==1 else 0
-
     self.margin_call_info = create_margin_call_info(data_folder=self.data_folder)
 
     self.monthly_data = create_monthly_data(data_folder=self.data_folder,
@@ -72,35 +65,6 @@ class Simulation:
                                             margincutoff=self.margin_call_info['Margin_Call_Cutoff_Point'].tolist(),
                                             cap=self.cap)
     
-    # # from 'PE Multiplier' sheet
-    # self.pe_10 = caclulate_pe_10(data_folder=self.data_folder)
-
-    # # from 'PE Multiplier' sheet
-    # self.pe_10_samuelson = caclulate_pe_10_multiplier(data_folder=self.data_folder,
-    #                                                   maxsam=self.maxsam,
-    #                                                   minsam=self.minsam,
-    #                                                   PEadjust=self.PEadjust)
-
-    # # from 'Lifecycle strategy' sheet
-    # self.df_pe_depending_on_period = PE_10_depending_on_period(self.data_month, 
-    #                                                            self.pe_10)
-    
-    # # from 'Lifecycle strategy' sheet
-    # self.pe_multiplier = PE_Multiplier(df_PE_10_depending_on_period=self.df_pe_depending_on_period,
-    #                                    pe_10_samuelson=self.pe_10_samuelson)
-
-    # self.income_contrib = create_income_contributions(data_folder=self.data_folder,
-    #                                                      incomemult=self.incomemult,
-    #                                                      contrate=self.contrate)
-
-    # self.contributions = create_contributions(income_contrib=self.income_contrib,
-    #                                           ssreplace=self.ssreplace,
-    #                                           rmm=self.rmm,
-    #                                           rfm=self.rfm)
-
-    # # static table
-    # self.Samuelson_Share_for_ages_0_22 = Samuelson_Share_for_ages_0_22(lambdaearly=self.lambdaearly)
-
     self.percentage_target = self.calc_percentage_target(cohorts=self.cohorts, 
                                                          lambdacons=self.lambdacons)
 
