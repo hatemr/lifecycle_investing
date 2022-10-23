@@ -43,11 +43,6 @@ def create_monthly_data(margin_call_info: pd.DataFrame,
       else:
         return series2[index - 1]
 
-    # print(marginmonths[0:5])
-
-    # print([lookup(m, marginmonths, margincutoff) for m in df.loc[684:685, 'Months_beginning_Jan_1871']])
-    # raise Exception("RH")
-    
     df.loc[df.Months_beginning_Jan_1871 >= 685, 'Stock_Return_If_Margin_Call'] = [lookup(m, marginmonths, marginreturn) for m in df.loc[df.Months_beginning_Jan_1871 >= 685, 'Months_beginning_Jan_1871']]
     df.loc[df.Months_beginning_Jan_1871 < 685, 'Stock_Return_If_Margin_Call'] = 1
     

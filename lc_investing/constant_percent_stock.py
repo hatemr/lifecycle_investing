@@ -147,7 +147,8 @@ class Simulation:
                    left_on=['cohort_num','period_num'],
                    right_on=['cohort_num','period_num'])
 
-    # if allocation is greater than 100%, use margin rate
+    # return is a weighted sum of stocks, bonds, and margin
+    # loans (if allocation is greater than 100%)
     df4.loc[df4.percentage_target > 1, 'monthly_real_return'] = df4.loc[df4.percentage_target > 1, 'Monthly_real_margin_rate']
     df4.loc[df4.percentage_target <= 1, 'monthly_real_return'] = df4.loc[df4.percentage_target <= 1, 'Monthly_real_gov_bond_rate']
 

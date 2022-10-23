@@ -12,7 +12,8 @@ from lc_investing.utils import initialize_cohort_table, create_data_month
 class Simulation:
 
   def __init__(self,
-               data_folder='/content/drive/Othercomputers/My MacBook Air/Taxes_and_other_forms/lifecycle_investing/lc_investing/data/',
+              #  data_folder='/content/drive/Othercomputers/My MacBook Air/Taxes_and_other_forms/lifecycle_investing/lc_investing/data/',
+               data_folder='./lc_investing/data/',
                startper=1,
                lambda1=0.83030407,
                lambda2=0.83030407,
@@ -72,7 +73,7 @@ class Simulation:
     
     # from 'PE Multiplier' sheet
     self.pe_10 = caclulate_pe_10(data_folder=self.data_folder)
-
+    
     # from 'PE Multiplier' sheet
     self.pe_10_samuelson = caclulate_pe_10_multiplier(data_folder=self.data_folder,
                                                       maxsam=self.maxsam,
@@ -83,7 +84,7 @@ class Simulation:
     
     # from 'Lifecycle strategy' sheet
     self.pe_depending_on_period = PE_10_depending_on_period(self.data_month, 
-                                                               self.pe_10)
+                                                            self.pe_10)
     
     # from 'Lifecycle strategy' sheet
     self.pe_multiplier = PE_Multiplier(PE_10_depending_on_period=self.pe_depending_on_period,
@@ -360,11 +361,11 @@ def PE_10_depending_on_period(data_month: pd.DataFrame,
                  left_on='month',
                  right_on='period_num',
                  how='left')
-
+  
   df2 = df1.pivot(index=['cohort_num', 'begins_work', 'retire'], 
                   columns='period_num_x',
                   values='PE_10')
-
+  
   df2.columns.name = None
   df2 = df2.reset_index()
 
@@ -419,9 +420,8 @@ def Samuelson_Share_for_ages_0_22(lambdaearly: float):
                      'age_22': list(range(1870, 1870 + 96))})
 
   df1 = pd.DataFrame({key:np.zeros(96) for key in range(0,529)})
+  df1.iloc[23:95, :] = lambdaearly  # cohort_num >= 24
 
   df2 = pd.concat([df, df1], axis=1)
-
-  df2.loc[df2.cohort_num >= 24, 0:528] = lambdaearly
 
   return df2

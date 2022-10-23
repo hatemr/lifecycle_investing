@@ -7,7 +7,12 @@ from .utils import npv
 def create_income_contributions(data_folder: str,
                                 incomemult: float,
                                 contrate: float):
-    """"""
+    """
+    
+    incomemult: multiplier use to get your actual annual income
+    contrate: contribution rate. The fraction of your gross annual 
+        income that you invest
+    """
     base_file = data_folder + 'contributions.csv'
 
     df = pd.read_csv(base_file)
