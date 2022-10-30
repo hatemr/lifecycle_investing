@@ -25,6 +25,7 @@ def create_monthly_data(margin_call_info: pd.DataFrame,
 
     df.loc[:, 'Monthly_CPI_lead1'] = df.loc[:, 'Monthly_CPI'].shift(-1)
     
+    df.loc[:, 'yearly_annual_margin_rate'] = df.loc[:, 'Monthly_nom_margin_rate'] * 12
     df.loc[:, 'Prospective_monthly_inflation_rate'] = df.loc[:, 'Monthly_CPI_lead1'] / df.loc[:, 'Monthly_CPI']
     df.loc[:, 'Annualized_adjusted_gov_bond_rate'] = (df.loc[:, 'Monthly_nom_gov_bond_rate']+1)**12 + bondadj
     df.loc[:, 'Annualized_adjusted_margin_rate'] = (df.loc[:, 'Monthly_nom_margin_rate']+1)**12 + margadj
