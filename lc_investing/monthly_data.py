@@ -12,7 +12,8 @@ def create_monthly_data(margin_call_info: pd.DataFrame,
                         marginmonths: List,
                         marginreturn: List,
                         margincutoff: List,
-                        cap: float):
+                        cap: float,
+                        borrowing_rate_override: float = None):
     """Create monthly data"""
     
     base_file = data_folder + 'monthly_data.csv'
@@ -28,7 +29,12 @@ def create_monthly_data(margin_call_info: pd.DataFrame,
     df.loc[:, 'yearly_annual_margin_rate'] = df.loc[:, 'Monthly_nom_margin_rate'] * 12
     df.loc[:, 'Prospective_monthly_inflation_rate'] = df.loc[:, 'Monthly_CPI_lead1'] / df.loc[:, 'Monthly_CPI']
     df.loc[:, 'Annualized_adjusted_gov_bond_rate'] = (df.loc[:, 'Monthly_nom_gov_bond_rate']+1)**12 + bondadj
-    df.loc[:, 'Annualized_adjusted_margin_rate'] = (df.loc[:, 'Monthly_nom_margin_rate']+1)**12 + margadj
+    
+    if borrowing_rate_override:
+      df.loc[:, 'Annualized_adjusted_margin_rate'] = borrowing_rate_override
+    else:
+      df.loc[:, 'Annualized_adjusted_margin_rate'] = (df.loc[:, 'Monthly_nom_margin_rate']+1)**12 + margadj
+    
     df.loc[:, 'Annualized_adjusted_stock_return'] = (df.loc[:, 'Monthly_nom_stock_return']+1)**12 + stockadj
     
     # =IF(A686>=685,LOOKUP(A686,marginmonths,marginreturn),1)
