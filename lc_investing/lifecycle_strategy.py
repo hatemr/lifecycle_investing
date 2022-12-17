@@ -15,20 +15,20 @@ class Simulation:
               #  data_folder='/content/drive/Othercomputers/My MacBook Air/Taxes_and_other_forms/lifecycle_investing/lc_investing/data/',
                data_folder='./lc_investing/data/',
                startper=1,
-               lambda1=0.83030407,
-               lambda2=0.83030407,
-               cap=2,
-               requirement=0,
-               incomemult=2.35217277377134,
-               contrate=0.04,
-               ssreplace=0.0,
-               rmm=0.00213711852838,
-               rfm=0.00211039468707308,
-               PEadjust=0,
-               maxsam=2,
-               minsam=0,
-               inheritance_indicator=0,
-               inheritance_amount=5000,
+               lambda1=0.83030407,  # initial Samuelson share
+               lambda2=0.83030407,  # Second Samuelson share
+               cap=2,				# leverage cap
+               requirement=0,		# margin requirement
+               incomemult=2.35217277377134,  # multiplies Social Security based income to achieve a realistic income
+               contrate=0.04,		# contribution rate. Fraction of monthly income saved and invested
+               ssreplace=0.0,		# Social Security replacement rate (?)
+               rmm=0.00213711852838, 
+               rfm=0.00211039468707308, 
+               PEadjust=0,  		# 0=unadjusted, 1=adjusted
+               maxsam=2,			# maximum Samuelson share
+               minsam=0,			# minimum Samuelson share
+               inheritance_indicator=0,  # inheritance/early start indicator. 1=inheritance given at birth, 0=no inheritance
+               inheritance_amount=5000,  # inheritance amount is $500, $1000, $5000
                lambdaearly=2):
 
     self.data_folder=data_folder
