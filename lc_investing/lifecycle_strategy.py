@@ -16,7 +16,7 @@ class Simulation:
                data_folder='./lc_investing/data/',
                startper=1,
                lambda1=0.83030407,  # initial Samuelson share
-               lambda2=0.83030407,  # Second Samuelson share
+               lambda2=0.83030407,  # second Samuelson share
                cap=2,				# leverage cap
                requirement=0,		# margin requirement
                incomemult=2.35217277377134,  # multiplies Social Security based income to achieve a realistic income
@@ -91,8 +91,8 @@ class Simulation:
                                        pe_10_samuelson=self.pe_10_samuelson)
 
     self.income_contrib = create_income_contributions(data_folder=self.data_folder,
-                                                         incomemult=self.incomemult,
-                                                         contrate=self.contrate)
+                                                      incomemult=self.incomemult,
+                                                      contrate=self.contrate)
 
     self.contributions = create_contributions(income_contrib=self.income_contrib,
                                               ssreplace=self.ssreplace,
@@ -156,6 +156,7 @@ class Simulation:
                                'denominator1': denominator1,
                                'comparison1': numerator1/denominator1})
       
+	  # leverage cap (e.g. cap=2)
       df1.loc[:, 'cap'] = self.cap
 
       numerator2 = (self.lambda2 * self.pe_multiplier.loc[:, period]) * (self.contributions.loc[self.contributions.Months==period, 'PV_of_remaining_contributions_at_the_risk_free_rate'].values[0] + self.retirement_savings_before_period.loc[:, period])

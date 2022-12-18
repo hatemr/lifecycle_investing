@@ -3,7 +3,7 @@ import pandas as pd
 
 def caclulate_pe_10(data_folder: str):
 
-  """Create monthly data"""
+  """Calculate PE 10"""
 
   base_file = data_folder + 'pe_10.csv'
 
@@ -23,7 +23,7 @@ def caclulate_pe_10_multiplier(data_folder: str,
                                minsam: float,
                                PEadjust: int):
 
-  """Create monthly data"""
+  """Calculate PE 10 multiplier"""
 
   base_file = data_folder + 'pe_multiplier.csv'
 
