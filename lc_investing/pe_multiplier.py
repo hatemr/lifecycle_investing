@@ -8,7 +8,8 @@ def caclulate_pe_10(data_folder: str):
   base_file = data_folder + 'pe_10.csv'
 
   df = pd.read_csv(base_file)
-
+  
+  # for early months, impute mean
   df.loc[df.Month <= 1880.12, 'PE_10'] = df.loc[((df.Month >= 1881.01) & (df.Month <= 1889.12)), 'PE_10'].mean()
   
   df.insert(loc=0, 

@@ -49,10 +49,10 @@ def create_contributions(income_contrib: pd.DataFrame,
     cashflows = df1.Monthly_Contribution.values.tolist()
 
     NPVs = np.array([npv(rmm, [0] + cashflows[i:]) for i in range(len(cashflows))]) * (1 + rmm)
-    df1.loc[:, 'PV_of_remaining_contributions_at_the_margin_rate'] = NPVs
+    df1.loc[:, 'PV_of_remain_contrib_at_margin_rate'] = NPVs
     
     NPVs_riskfree = NPVs = np.array([npv(rfm, [0] + cashflows[i:]) for i in range(len(cashflows))]) * (1 + rfm)
-    df1.loc[:, 'PV_of_remaining_contributions_at_the_risk_free_rate'] = NPVs_riskfree
+    df1.loc[:, 'PV_of_remain_contrib_at_risk_free_rate'] = NPVs_riskfree
 
     df1.loc[:, 'Yearly_Contribution'] = df1.loc[:, 'Monthly_Contribution'] * 12
   

@@ -12,8 +12,7 @@ from lc_investing.utils import initialize_cohort_table, create_data_month
 class Simulation:
 
   def __init__(self,
-              #  data_folder='/content/drive/Othercomputers/My MacBook Air/Taxes_and_other_forms/lifecycle_investing/lc_investing/data/',
-               data_folder='./lc_investing/data/',
+               data_folder='../lc_investing/data/',
                startper=1,
                lambda1=0.83030407,  # initial Samuelson share
                lambda2=0.83030407,  # second Samuelson share
@@ -52,7 +51,8 @@ class Simulation:
 
     self.cohorts = create_cohorts()
 
-    self.retirement_savings_before_period = initialize_cohort_table(self.cohorts)
+	# rsbp -> retirement savings before period
+    self.rsbp = initialize_cohort_table(self.cohorts)
     self.percentage_target = initialize_cohort_table(self.cohorts)
     self.real_returns = initialize_cohort_table(self.cohorts)
     self.real_return_for_ages_0_22 = initialize_cohort_table_birth()
@@ -87,14 +87,14 @@ class Simulation:
                                                             self.pe_10)
     
     # from 'Lifecycle strategy' sheet
-    self.pe_multiplier = PE_Multiplier(PE_10_depending_on_period=self.pe_depending_on_period,
+    self.pe_mult = PE_Multiplier(PE_10_depending_on_period=self.pe_depending_on_period,
                                        pe_10_samuelson=self.pe_10_samuelson)
 
     self.income_contrib = create_income_contributions(data_folder=self.data_folder,
                                                       incomemult=self.incomemult,
                                                       contrate=self.contrate)
 
-    self.contributions = create_contributions(income_contrib=self.income_contrib,
+    self.contrib = create_contributions(income_contrib=self.income_contrib,
                                               ssreplace=self.ssreplace,
                                               rmm=self.rmm,
                                               rfm=self.rfm)
@@ -117,7 +117,7 @@ class Simulation:
     for per in range(1, period+1):
       
       # must run in this order
-      self.retirement_savings_before_period.loc[:, per] = (self.contributions.loc[self.contributions.Months==per, 'Monthly_Contribution'].values[0] + self.retirement_savings_before_period.loc[:, per-1]) * (1 + self.real_returns.loc[:, per-1])
+      self.rsbp.loc[:, per] = (self.contrib.loc[self.contrib.Months==per, 'Monthly_Contribution'].values[0] + self.rsbp.loc[:, per-1]) * (1 + self.real_returns.loc[:, per-1])
       
       self.calc_percentage_target(period=per)
       
@@ -129,8 +129,8 @@ class Simulation:
       # must be after calc_real_return_for_ages_0_22
       self.calc_inheritance_from_ages_0_22(period=per)
 
-    self.sstotal = self.contributions.Monthly_Contribution.values[-1]
-    self.retirement_savings_before_period.loc[:, 'FINAL'] = self.retirement_savings_before_period.loc[:, period] * (1 + self.real_returns.loc[:, period]) + self.sstotal
+    self.sstotal = self.contrib.Monthly_Contribution.values[-1]
+    self.rsbp.loc[:, 'FINAL'] = self.rsbp.loc[:, period] * (1 + self.real_returns.loc[:, period]) + self.sstotal
 
     return
 
@@ -145,31 +145,38 @@ class Simulation:
     assert period >= 1, 'period must be >=1'
 
     if period >= self.startper:
+      
+      pv_rc_mr = self.contrib.loc[self.contrib.Months==period, 'PV_of_remain_contrib_at_margin_rate'].values[0]
+      # sam share times PV of lifetime capital
+      targ_amt_in_stocks_marg_rt = (self.lambda1 * self.pe_mult.loc[:, period]) * (pv_rc_mr + self.rsbp.loc[:, period])
+      # financial capital (including this period's contributions)
+      fin_capital = (self.rsbp.loc[:, period] + self.contrib.loc[self.contrib.Months==period, 'Monthly_Contribution'].values[0])
 
-      numerator1 = (self.lambda1 * self.pe_multiplier.loc[:, period]) * (self.contributions.loc[self.contributions.Months==period, 'PV_of_remaining_contributions_at_the_margin_rate'].values[0] + self.retirement_savings_before_period.loc[:, period])
-      denominator1 = (self.retirement_savings_before_period.loc[:, period] + self.contributions.loc[self.contributions.Months==period, 'Monthly_Contribution'].values[0])
-
-      df1 = pd.DataFrame(data={'retirement_savings_before_period': self.retirement_savings_before_period.loc[:, period],  # DU4
-                               'PV_of_remaining_contributions_at_the_margin_rate': self.contributions.loc[self.contributions.Months==period, 'PV_of_remaining_contributions_at_the_margin_rate'].values[0],  # INDEX(Contributions!$H$2:$H$529,DC$101)
-                               'pe_multiplier': self.pe_multiplier.loc[:, period],  # DU1192
-                               'numerator1': numerator1,
-                               'denominator1': denominator1,
-                               'comparison1': numerator1/denominator1})
+      df1 = pd.DataFrame(data={'retirement_savings_before_period': self.rsbp.loc[:, period],  # DU4
+                               'PV_of_remain_contrib_at_margin_rate': self.contrib.loc[self.contrib.Months==period, 'PV_of_remain_contrib_at_margin_rate'].values[0],  # INDEX(Contributions!$H$2:$H$529,DC$101)
+                               'pe_multiplier': self.pe_mult.loc[:, period],  # DU1192
+                               'targ_amt_in_stocks_marg_rt': targ_amt_in_stocks_marg_rt,
+                               'fin_capital': fin_capital,
+                               'comp1': targ_amt_in_stocks_marg_rt/fin_capital}) # lifetime capital divided by financial capital
       
 	  # leverage cap (e.g. cap=2)
       df1.loc[:, 'cap'] = self.cap
-
-      numerator2 = (self.lambda2 * self.pe_multiplier.loc[:, period]) * (self.contributions.loc[self.contributions.Months==period, 'PV_of_remaining_contributions_at_the_risk_free_rate'].values[0] + self.retirement_savings_before_period.loc[:, period])
-      denominator2 = (self.retirement_savings_before_period.loc[:, period] + self.contributions.loc[self.contributions.Months==period, 'Monthly_Contribution'].values[0])
+		
+      pv_rc_rfr = self.contrib.loc[self.contrib.Months==period, 'PV_of_remain_contrib_at_risk_free_rate'].values[0]
+	  # sam share times PV of your lifetime capital, using the risk-free rate to discount your future contributions (why?)
+      targ_amt_in_stocks = (self.lambda2 * self.pe_mult.loc[:, period]) * (pv_rc_rfr + self.rsbp.loc[:, period])
       
-      df1.loc[:, 'numerator2'] = numerator2
-      df1.loc[:, 'denominator2'] = denominator2
+      df1.loc[:, 'targ_amt_in_stocks'] = targ_amt_in_stocks
+      df1.loc[:, 'fin_capital'] = fin_capital
 
-      df1.loc[:, 'comparison2'] = numerator2/denominator2
-      df1.loc[:, 'comparision3'] = 1
+      # multiple of your financial capital (current portfolio) that should be invested in stocks
+      df1.loc[:, 'comp2'] = targ_amt_in_stocks/fin_capital
+      df1.loc[:, 'comp3'] = 1
 
-      df1.loc[df1.comparison1 > 1, 'perc_targ'] = df1.loc[:, ['cap','comparison1']].min(axis=1)
-      df1.loc[df1['comparison1'] <= 1, 'perc_targ'] = df1.loc[:, ['comparision3','comparison2']].min(axis=1)
+      # if your stock allocation should be above 100% of current portfolio, then leverage (up to the cap)
+      df1.loc[df1.comp1 > 1, 'perc_targ'] = df1.loc[:, ['cap','comp1']].min(axis=1)
+      # if your stock allocation should be below 100% of current portfolio, then leverage using the risk-free rate
+      df1.loc[df1['comp1'] <= 1, 'perc_targ'] = df1.loc[:, ['comp3','comp2']].min(axis=1)
 
       self.percentage_target.loc[:, period] = df1.loc[:, 'perc_targ']
 
@@ -205,23 +212,27 @@ class Simulation:
                    right_on='Months_beginning_Jan_1871'). \
       sort_values(['cohort_num', 'period_num', 'begins_work'])
 
-    df1.loc[:, 'percentage_target'] = self.percentage_target.loc[:, period]
-
-    option1 = (1 - df1.loc[:, 'percentage_target']) * df1.loc[:, 'Monthly_real_margin_rate'] - 1 + (1 + df1.loc[:, 'Margin_Call_Real_Stock_Return']) * ((1 - df1.loc[:, 'percentage_target'] * requirement) / (df1.loc[:, 'percentage_target'] - df1.loc[:, 'percentage_target'] * requirement))
+    df1.loc[:, 'perc_targ'] = self.percentage_target.loc[:, period]
+	
+    pt = df1.loc[:, 'perc_targ']
+    mrmr = df1.loc[:, 'Monthly_real_margin_rate']
+    mrsr = df1.loc[:, 'Margin_Call_Real_Stock_Return']
+    op1 = (1 - pt) * mrmr - 1 + (1 + mrsr) * ((1 - pt * requirement) / (pt - pt * requirement))
     
-    option2_sub = df1.loc[:, ['percentage_target', 'Monthly_real_margin_rate', 'Monthly_real_gov_bond_rate']]
-    option2_sub.loc[option2_sub.percentage_target > 1, 'var1'] = option2_sub.loc[option2_sub.percentage_target > 1, 'Monthly_real_margin_rate']
-    option2_sub.loc[option2_sub.percentage_target <= 1, 'var1'] = option2_sub.loc[option2_sub.percentage_target <= 1, 'Monthly_real_gov_bond_rate']
+    op2s = df1.loc[:, ['perc_targ', 'Monthly_real_margin_rate', 'Monthly_real_gov_bond_rate']]
+    op2s.loc[op2s.perc_targ > 1, 'var1'] = op2s.loc[op2s.perc_targ > 1, 'Monthly_real_margin_rate']
+    op2s.loc[op2s.perc_targ <= 1, 'var1'] = op2s.loc[op2s.perc_targ <= 1, 'Monthly_real_gov_bond_rate']
     
-    df1.loc[:, 'option2_sub_var1'] = option2_sub.var1
+    df1.loc[:, 'op2s_var1'] = op2s.var1
 
-    option2 = df1.percentage_target * df1.Monthly_real_stock_rate + (1 - df1.percentage_target) * (option2_sub.var1)
+    op2 = df1.perc_targ * df1.Monthly_real_stock_rate + (1 - df1.perc_targ) * (op2s.var1)
     
-    df1.loc[:, 'option1'] = option1
-    df1.loc[:, 'option2'] = option2
+    df1.loc[:, 'op1'] = op1
+    df1.loc[:, 'op2'] = op2
 
-    df1.loc[df1.percentage_target > df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.percentage_target > df1.Margin_Call_Cutoff, 'option1']
-    df1.loc[df1.percentage_target <= df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.percentage_target <= df1.Margin_Call_Cutoff, 'option2']
+    # 
+    df1.loc[df1.perc_targ > df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.perc_targ > df1.Margin_Call_Cutoff, 'op1']
+    df1.loc[df1.perc_targ <= df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.perc_targ <= df1.Margin_Call_Cutoff, 'op2']
 
     df1.loc[:, 'base'] = -1
     df1.loc[:, 'real_returns'] = df1.loc[:, ['base', 'var2']].max(axis=1)
@@ -260,23 +271,23 @@ class Simulation:
 
     # df1 = df1.loc[df1.cohort_num >= 24, :]
 
-    df1.loc[:, 'samuelson_Share_for_ages_0_22'] = self.Samuelson_Share_for_ages_0_22.loc[:, period]
+    df1.loc[:, 'ss_age_0_22'] = self.Samuelson_Share_for_ages_0_22.loc[:, period]
     
-    option1 = (1 - df1.loc[:, 'samuelson_Share_for_ages_0_22']) * df1.loc[:, 'Monthly_real_margin_rate'] - 1 + (1 + df1.loc[:, 'Margin_Call_Real_Stock_Return']) * ((1 - df1.loc[:, 'samuelson_Share_for_ages_0_22'] * self.requirement) / (df1.loc[:, 'samuelson_Share_for_ages_0_22'] - df1.loc[:, 'samuelson_Share_for_ages_0_22'] * self.requirement))
+    op1 = (1 - df1.loc[:, 'ss_age_0_22']) * df1.loc[:, 'Monthly_real_margin_rate'] - 1 + (1 + df1.loc[:, 'Margin_Call_Real_Stock_Return']) * ((1 - df1.loc[:, 'ss_age_0_22'] * self.requirement) / (df1.loc[:, 'ss_age_0_22'] - df1.loc[:, 'ss_age_0_22'] * self.requirement))
     
-    option2_sub = df1.loc[:, ['samuelson_Share_for_ages_0_22', 'Monthly_real_margin_rate', 'Monthly_real_gov_bond_rate']]
-    option2_sub.loc[option2_sub.samuelson_Share_for_ages_0_22 > 1, 'var1'] = option2_sub.loc[option2_sub.samuelson_Share_for_ages_0_22 > 1, 'Monthly_real_margin_rate']
-    option2_sub.loc[option2_sub.samuelson_Share_for_ages_0_22 <= 1, 'var1'] = option2_sub.loc[option2_sub.samuelson_Share_for_ages_0_22 <= 1, 'Monthly_real_gov_bond_rate']
+    op2s = df1.loc[:, ['ss_age_0_22', 'Monthly_real_margin_rate', 'Monthly_real_gov_bond_rate']]
+    op2s.loc[op2s.ss_age_0_22 > 1, 'var1'] = op2s.loc[op2s.ss_age_0_22 > 1, 'Monthly_real_margin_rate']
+    op2s.loc[op2s.ss_age_0_22 <= 1, 'var1'] = op2s.loc[op2s.ss_age_0_22 <= 1, 'Monthly_real_gov_bond_rate']
     
-    df1.loc[:, 'option2_sub_var1'] = option2_sub.var1
+    df1.loc[:, 'op2s_var1'] = op2s.var1
 
-    option2 = df1.samuelson_Share_for_ages_0_22 * df1.Monthly_real_stock_rate + (1 - df1.samuelson_Share_for_ages_0_22) * (option2_sub.var1)
+    op2 = df1.ss_age_0_22 * df1.Monthly_real_stock_rate + (1 - df1.ss_age_0_22) * (op2s.var1)
     
-    df1.loc[:, 'option1'] = option1
-    df1.loc[:, 'option2'] = option2
+    df1.loc[:, 'op1'] = op1
+    df1.loc[:, 'op2'] = op2
 
-    df1.loc[df1.samuelson_Share_for_ages_0_22 > df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.samuelson_Share_for_ages_0_22 > df1.Margin_Call_Cutoff, 'option1']
-    df1.loc[df1.samuelson_Share_for_ages_0_22 <= df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.samuelson_Share_for_ages_0_22 <= df1.Margin_Call_Cutoff, 'option2']
+    df1.loc[df1.ss_age_0_22 > df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.ss_age_0_22 > df1.Margin_Call_Cutoff, 'op1']
+    df1.loc[df1.ss_age_0_22 <= df1.Margin_Call_Cutoff, 'var2'] = df1.loc[df1.ss_age_0_22 <= df1.Margin_Call_Cutoff, 'op2']
 
     df1.loc[:, 'base'] = -1
     df1.loc[:, 'real_return_for_ages_0_22'] = df1.loc[:, ['base', 'var2']].max(axis=1)

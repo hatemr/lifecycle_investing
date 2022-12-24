@@ -65,9 +65,9 @@ class Simulation:
                                               rmm=self.rmm,
                                               rfm=self.rfm)
 
-    self.retirement_savings_before_period = self.calc_retirement_savings_before_period(cohorts=self.cohorts,
-                                                                                       contributions=self.contributions,
-                                                                                       real_return=self.real_return)
+    self.rsbp = self.calc_retirement_savings_before_period(cohorts=self.cohorts,
+															    contributions=self.contributions,
+															    real_return=self.real_return)
 
   def calc_retirement_savings_before_period(self,
                                             cohorts: pd.DataFrame, 
