@@ -28,7 +28,8 @@ class Simulation:
                minsam=0,			# minimum Samuelson share
                inheritance_indicator=0,  # inheritance/early start indicator. 1=inheritance given at birth, 0=no inheritance
                inheritance_amount=5000,  # inheritance amount is $500, $1000, $5000
-               lambdaearly=2):
+               lambdaearly=2,
+               crra=2):
 
     self.data_folder=data_folder
     self.startper=startper
@@ -47,6 +48,7 @@ class Simulation:
     self.inheritance_indicator=inheritance_indicator
     self.inheritance_amount=inheritance_amount
     self.lambdaearly=lambdaearly
+    self.crralife=crra
                                                       
 
     self.cohorts = create_cohorts()
@@ -88,7 +90,7 @@ class Simulation:
     
     # from 'Lifecycle strategy' sheet
     self.pe_mult = PE_Multiplier(PE_10_depending_on_period=self.pe_depending_on_period,
-                                       pe_10_samuelson=self.pe_10_samuelson)
+                                 pe_10_samuelson=self.pe_10_samuelson)
 
     self.income_contrib = create_income_contributions(data_folder=self.data_folder,
                                                       incomemult=self.incomemult,
@@ -131,6 +133,9 @@ class Simulation:
 
     self.sstotal = self.contrib.Monthly_Contribution.values[-1]
     self.rsbp.loc[:, 'FINAL'] = self.rsbp.loc[:, period] * (1 + self.real_returns.loc[:, period]) + self.sstotal
+
+    # calculate utility of wealth
+    self.utility = Utility(self.rsbp, self.crralife)
 
     return
 
@@ -342,10 +347,16 @@ def Present_value_of_accumulation(cohort: pd.DataFrame,
                                   retirement_savings_before_period: pd.DataFrame,
                                   rfm: float):
     pass
-def Utility(cohort: pd.DataFrame, 
-            retirement_savings_before_period: pd.DataFrame,
-            crracons):
-    pass
+def Utility(retirement_savings_before_period: pd.DataFrame,
+            crralife: int):
+    """Utility of wealth using power utility"""
+    df1 = retirement_savings_before_period.copy()
+    if crralife==1:
+      df1.iloc[:, 4:] = np.log(df1.iloc[:, 4:])
+    else:
+      df1.iloc[:, 4:] = (df1.iloc[:, 4:]**(1-crralife))/(1-crralife)
+    return df1
+    
 def Herfindal_Hirshman_Index_Calculation(cohort: pd.DataFrame, 
                                          amount_in_stock: pd.DataFrame):
     pass

@@ -5,9 +5,11 @@ sys.path.append('..')
 import lc_investing.lifecycle_strategy
 lc_investing.lifecycle_strategy = reload(lc_investing.lifecycle_strategy)
 
-s3 = lc_investing.lifecycle_strategy.Simulation(incomemult=3.6, cap=50)
+s3 = lc_investing.lifecycle_strategy.Simulation()
 s3.calc_retirement_savings_before_period()
 print(s3.rsbp.FINAL.describe())
+# print(s3.rsbp.iloc[0:2, 3:])
+print(s3.utility.iloc[0:2, 4:7])
 
 
 # print(s.monthly_data.columns.tolist())
