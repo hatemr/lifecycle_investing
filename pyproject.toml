@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools >= 64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lifecycle-investing"
+version = "0.1.0"
+dependencies = [
+  "pandas",
+  "numpy",
+  "matplotlib",
+  "seaborn",
+]
+requires-python = ">=3.10"
+authors = [
+  {name = "Emile Hatem", email = "robert.emile.hatem@gmail.com"},
+]
+description = "A package to simulate lifecycle investment strategies"
+readme = "README.md"
