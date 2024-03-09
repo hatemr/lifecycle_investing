@@ -12,7 +12,7 @@ from lc_investing.utils import initialize_cohort_table, create_data_month
 class Simulation:
 
   def __init__(self,
-               data_folder='../lc_investing/data/',
+               data_folder='c:/Users/Emile/Documents/lifecycle_investing/lc_investing/data/',
                startper=1,
                lambda1=0.83030407,  # initial Samuelson share
                lambda2=0.83030407,  # second Samuelson share

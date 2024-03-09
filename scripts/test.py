@@ -1,6 +1,7 @@
 from importlib import reload
 import sys
 sys.path.append('..')
+sys.path.append('c:\\Users\\Emile\\Documents\\lifecycle_investing')
 
 import lc_investing.lifecycle_strategy
 lc_investing.lifecycle_strategy = reload(lc_investing.lifecycle_strategy)
