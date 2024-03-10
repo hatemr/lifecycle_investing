@@ -42,8 +42,16 @@ class TestComputation(unittest.TestCase):
 
     def test_backtest_1(self):
         """"""
-        b = Backtest()
-        self.assertEqual(b.get_data(), 1, 'should be equal')
+        start_date = '1940-01-31'
+        end_date = '2023-12-31'
+        rebalance_dates = pd.date_range(start_date, end_date, freq='YE').tolist()
+
+        b = Backtest(initial_leverage=2)
+        b.get_data(start_date=start_date, end_date=end_date, data_filename='Core_simulation.xlsx')
+        b.run(rebalance_dates=rebalance_dates)
+        self.assertEqual(b.data.shape[1], 14, 'incorrect number of columns')
+        self.assertEqual(b.results.shape[1], 15, 'incorrect number of columns')
+        self.assertEqual(b.stats.shape[1], 8, 'incorrect number of colums')
 
 if __name__ == "__main__":
     unittest.main(module="tests_1")
