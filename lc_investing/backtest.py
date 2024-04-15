@@ -27,38 +27,15 @@ class Backtest:
                  end_date: str,
                  data_filename: str = "../Core_simulation.xlsx"):
         """get data"""
-        print()
-        data = (
-            pd.read_excel(data_filename,
-                          sheet_name='Monthly data',
-                          header=0)
-            # assign dates using last day of the month
-            .assign(date = lambda data: pd.to_datetime(data.loc[:, 'Monthly years'].astype(str), format="%Y.%m") + MonthEnd(0))
-            .iloc[0:1662, :]  # remove last data points since they aren't accurate
-            # filter to desired dates
-            .query(f"date >= '{start_date}'")
-            .query(f"date <= '{end_date}'")
-            .reset_index(drop=True)
-            # .loc[:, ['date', 'Monthly real stock rate',
-            #          'Monthly real gov bond rate',
-            #          'Monthly real margin rate']]
-            .loc[:, ['date',
-                     'Monthly nom stock return**',
-                     'Monthly nom gov bond rate*',
-                     'Monthly nom margin rate†']]
-            .rename(columns={'Monthly nom stock return**': 'SP500',
-                             'Monthly nom gov bond rate*': '10Ybond',
-                             'Monthly nom margin rate†': 'margin_rate'})
-            .melt(id_vars='date', var_name='id')
-            .rename(columns={'value': 'returns'})
-        )
+        nalebuf_data = get_nalebuff_data(data_filename=data_filename, start_date=start_date, end_date=end_date)
         trend_socgen, trend_barclays = self.get_trend_index_data()
-        index_data = self.get_index_data()
+        index_data = get_index_data()
+        cpi_data = get_cpi_data()
 
-        data1 = pd.concat([data, trend_socgen, trend_barclays, index_data], axis=0)
+        returns_nominal = pd.concat([nalebuf_data, trend_socgen, trend_barclays, index_data], axis=0)
         # convert from nominal to real
-        data2 = pd.concat([adjust_to_real(data.query(f"id=='{id}'")) for id in data['id'].unique()], axis=0)
-        
+        returns_real = pd.concat([adjust_to_real(cpi_data, returns=returns_nominal.query(f"id=='{id}'")) for id in returns_nominal['id'].unique()], axis=0)
+        returns_real_2 = returns_real.pivot(index='date', values='returns_real', columns='id')
         # change simple returns R to gross returns (1+R)
         data1.loc[:, ['Monthly real stock rate', 'Monthly real gov bond rate', 'Monthly real margin rate']] = (
             1 + data1.loc[:, ['Monthly real stock rate', 'Monthly real gov bond rate', 'Monthly real margin rate']]
@@ -163,6 +140,7 @@ class Backtest:
             pd.read_excel(data_filename_socgen)
             .drop(columns=['index level'])
             .rename(columns={'Date': 'date', 'SG Trend Index': 'returns'})
+            .assign(date=lambda df: df['date'] - MonthEnd(1))
         )
         trend_socgen.insert(1, column='id', value='NEIXCTAT')
 
@@ -173,11 +151,11 @@ class Backtest:
         trend_barclays = (
             trend_barclays
             .rename(columns={'Unnamed: 0': 'date'})
-            .iloc[0:38, :]
+            .iloc[0:38, :]  # the data is in the top part of the excel sheet
             .melt(id_vars='date')
             .assign(date=lambda df: df['date'].astype(int).astype(str))
             .assign(date=lambda df: df['date'] + df['variable'].replace(month_map))
-            .assign(date=lambda df: pd.to_datetime(df['date']))
+            .assign(date=lambda df: pd.to_datetime(df['date']) - MonthEnd(1))
             .drop(columns=['variable'])
             .rename(columns={'value': 'returns'})
             .assign(returns=lambda df: df['returns'].astype(float))
@@ -186,18 +164,50 @@ class Backtest:
         
         return trend_socgen, trend_barclays
     
-    def get_index_data(self):
-        """index data, stocks and bonds"""
-        data = yf_retrieve_data(tickers=['IVV','INX','SPX','AGG','DBMF','KMLM','RSST'])
-        return data
+def get_index_data():
+    """index data, stocks and bonds"""
+    data = yf_retrieve_data(tickers=['IVV','INX','SPX','AGG','DBMF','KMLM','RSST'])
+    return data
     
+def get_nalebuff_data(data_filename: str,
+                      start_date: str,
+                      end_date: str):
+    """get data from Lifecycle Investing book's dataset"""
+    
+    data = (
+        pd.read_excel(data_filename,
+                      sheet_name='Monthly data',
+                      header=0,
+                      dtype={'Monthly years': float})
+        .iloc[0:1662, :]  # remove last data points since they aren't accurate
+        # assign dates using last day of the month
+        .assign(date = lambda data: pd.to_datetime((data.loc[:, 'Monthly years']*100).astype(int).astype(str), format="%Y%m") + MonthEnd(0))
+        # filter to desired dates
+        .query(f"date >= '{start_date}'")
+        .query(f"date <= '{end_date}'")
+        .reset_index(drop=True)
+        # .loc[:, ['date', 'Monthly real stock rate',
+        #          'Monthly real gov bond rate',
+        #          'Monthly real margin rate']]
+        .loc[:, ['date',
+                    'Monthly nom stock return**',
+                    'Monthly nom gov bond rate*',
+                    'Monthly nom margin rate†']]
+        .rename(columns={'Monthly nom stock return**': 'SP500',
+                            'Monthly nom gov bond rate*': '10Ybond',
+                            'Monthly nom margin rate†': 'margin_rate'})
+        .melt(id_vars='date', var_name='id')
+        .rename(columns={'value': 'returns'})
+    )
+    return data
+
 def yf_retrieve_data(tickers: List[str]):
   """Retrive price data from Yahoo Finance"""
   dataframes = []
 
   for ticker_name in tickers:
     ticker = yf.Ticker(ticker_name)
-    history = ticker.history(period='10y')
+    history = ticker.history(period='30y')
 
     if (history.shape[0] > 0) and history.isnull().any(axis=1).iloc[0]:  # the first row can have NaNs
       history = history.iloc[1:]
@@ -212,6 +222,7 @@ def yf_retrieve_data(tickers: List[str]):
         .pct_change()
         .reset_index()
         .rename(columns={'Close': 'returns', 'Date': 'date'})
+        .assign(date=lambda df: pd.to_datetime(df['date']).dt.tz_localize(None))
     )
     history_monthly.insert(1, value=ticker_name, column='id')
     dataframes.append(history_monthly)
@@ -219,8 +230,18 @@ def yf_retrieve_data(tickers: List[str]):
   returns = pd.concat(dataframes, axis=0)
   return returns
 
-def adjust_to_real(df: pd.DataFrame):
+def adjust_to_real(cpi: pd.DataFrame,
+                   returns: pd.DataFrame):
     """turn a returns series into real values"""
+    df1 = returns.merge(cpi, on='date', how='left')
+    # equation 1.15 here: https://bookdown.org/compfinezbook/introcompfinr/AssetReturnCalculations.html
+    # simple returns (R)
+    df1.loc[:, 'returns_real'] = ((1 + df1['returns']) / (1 + df1['inflation'])) - 1
+    df2 = df1.loc[:, ['date', 'id', 'returns_real']]
+    return df2
+
+def get_cpi_data():
+    """get CPI data"""
     # get CPI numbers
     # https://pieriantraining.com/exploring-inflation-data-with-python/
     # This sometimes take awhile!
@@ -237,9 +258,4 @@ def adjust_to_real(df: pd.DataFrame):
         .assign(inflation=lambda df: df['value'].pct_change())
         .rename(columns={'value': 'CPI'})
     )
-    df1 = df.merge(cpi_df, on='date', how='left')
-    # equation 1.15 here: https://bookdown.org/compfinezbook/introcompfinr/AssetReturnCalculations.html
-    # simple returns (R)
-    df1.loc[:, 'returns_real'] = ((1 + df1['returns']) / (1 + df1['inflation'])) - 1
-    return df1.loc[:, ['date', 'id', 'returns_real']]
-
+    return cpi_df
