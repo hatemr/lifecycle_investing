@@ -32,16 +32,19 @@ class Backtest:
         index_data = get_index_data()
         cpi_data = get_cpi_data()
 
-        returns_nominal = pd.concat([nalebuf_data, trend_socgen, trend_barclays, index_data], axis=0)
+        returns_nominal = pd.concat([nalebuf_data,
+                                     #trend_socgen, trend_barclays, index_data
+                                     ], axis=0)
         # convert from nominal to real
         returns_real = pd.concat([adjust_to_real(cpi_data, returns=returns_nominal.query(f"id=='{id}'")) for id in returns_nominal['id'].unique()], axis=0)
         returns_real_2 = returns_real.pivot(index='date', values='returns_real', columns='id')
+        data1=returns_real_2
         # change simple returns R to gross returns (1+R)
-        data1.loc[:, ['Monthly real stock rate', 'Monthly real gov bond rate', 'Monthly real margin rate']] = (
-            1 + data1.loc[:, ['Monthly real stock rate', 'Monthly real gov bond rate', 'Monthly real margin rate']]
+        data1.loc[:, ['SP500', '10Ybond', 'margin_rate']] = (
+            1 + data1.loc[:, ['SP500', '10Ybond', 'margin_rate']]
         )
         # turns the borrowing rate to zero - ad hoc
-        # data1.loc[:, 'Monthly real margin rate'] = 1.0
+        # data1.loc[:, 'margin_rate'] = 1.0
         # initialize asset class values
         data1.loc[0, 'equity_value'] = self.initial_leverage
         data1.loc[0, 'bonds_value'] = 0
@@ -76,7 +79,7 @@ class Backtest:
             data.loc[i, ['equity_value', 'bonds_value', 'debt_value']] = (
                 data.loc[i-1, ['weight_equity', 'weight_bond', 'weight_debt']].values
                 * data.loc[i-1, 'port_value']
-                * data.loc[i, ['Monthly real stock rate', 'Monthly real gov bond rate', 'Monthly real margin rate']].values
+                * data.loc[i, ['SP500', '10Ybond', 'margin_rate']].values
             )
             # update portfolio value
             data.loc[i, 'port_value'] = data.loc[i, ['equity_value', 'bonds_value', 'debt_value']].sum()
@@ -122,8 +125,8 @@ class Backtest:
 
         stats = pd.DataFrame(
             {'leverage': self.initial_leverage,
-             'equity_compound_return_per_annum': (1 + (results['Monthly real stock rate'].cumprod().values -1)[-1])**(1/years),
-             'levered_equity_compound_return_per_annum': (1 + self.initial_leverage * (results['Monthly real stock rate'].cumprod().values -1)[-1])**(1/years),
+             'equity_compound_return_per_annum': (1 + (results['SP500'].cumprod().values -1)[-1])**(1/years),
+             'levered_equity_compound_return_per_annum': (1 + self.initial_leverage * (results['SP500'].cumprod().values -1)[-1])**(1/years),
              'arithmetic_return_per_annum': (results.loc[:, 'returns_port'] - 1).mean() * 12,
              'compound_return_per_annum': results.iloc[-1, :].loc['returns_port_cum']**(1/years) - 1,
              'volatility_per_annum': results.loc[:, 'returns_port'].std() * (12**0.5),

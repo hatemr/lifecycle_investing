@@ -14,7 +14,9 @@ dependencies = [
   "xlrd",
   "openpyxl",
   "yfinance",
-  "cpi"
+  "cpi",
+  "QuantStats",
+  "jupyterlab"
 ]
 requires-python = ">=3.10"
 authors = [
